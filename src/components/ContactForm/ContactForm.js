@@ -1,45 +1,51 @@
 import React, { useState } from 'react';
 import css from './ContactForm.module.css';
-import { nanoid } from 'nanoid';
-import { useSelector, useDispatch } from 'react-redux';
-import { addContact, getContactList } from 'redux/contactsSlice';
+import {
+  useGetContactsQuery,
+  useAddContactMutation,
+} from 'redux/contactsSlice';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function ContactForm() {
-  const [number, setNumber] = useState('');
+  const { data } = useGetContactsQuery();
+  const [addContact] = useAddContactMutation();
+
+  const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
 
-  const dispatch = useDispatch();
-  const contacts = useSelector(getContactList);
-
   const handleChange = e => {
-    const { name, value } = e.target;
+    const { name, value } = e.currentTarget;
     if (name === 'name') {
       setName(value);
     }
-    if (name === 'number') {
-      setNumber(value);
+    if (name === 'phone') {
+      setPhone(value);
     }
   };
 
   const onSubmitForm = e => {
     e.preventDefault();
-    if (
-      contacts.find(
-        contact => contact.name.toLocaleLowerCase() === name.toLocaleLowerCase()
-      )
-    ) {
-      alert(name + ' is already available in Contact List');
+
+    const addExistingName = data.some(
+      contact => contact.name.toLocaleLowerCase() === name.toLowerCase()
+    );
+
+    if (addExistingName) {
+      toast.error(`Contact ${name} already exists in your ContactList`);
       return;
     }
 
-    dispatch(addContact({ name, number, id: String(nanoid(4)) }));
+    addContact({ name: name, phone: phone });
+
     resetForm();
   };
 
   const resetForm = () => {
     setName('');
-    setNumber('');
+    setPhone('');
   };
+
   return (
     <form className={css.form} onSubmit={onSubmitForm}>
       <label className={css.label}>
@@ -55,12 +61,12 @@ export default function ContactForm() {
         />
       </label>
       <label className={css.label}>
-        Number
+        Phone
         <input
           onChange={handleChange}
           type="tel"
-          name="number"
-          value={number}
+          name="phone"
+          value={phone}
           pattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
           title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
           required
